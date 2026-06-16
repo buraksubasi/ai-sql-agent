@@ -1,15 +1,14 @@
-# FastAPI Uygulaması & Rotalar
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from agent import get_sql_agent
+# Yeni fonksiyonumuzu import ediyoruz
+from agent import get_sql_agent_router 
 
 app = FastAPI()
 
-# Next.js isteklerine izin vermek için CORS ayarı
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Canlıda burayı sadece Next.js URL'i yapın
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -18,13 +17,14 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     question: str
 
-agent = get_sql_agent()
+# Yönlendiriciyi başlatıyoruz
+router_executor = get_sql_agent_router()
 
 @app.post("/api/chat")
 async def chat_with_db(payload: QueryRequest):
     try:
-        # LangChain ajanı soruyu alır, SQL üretir, çalıştırır ve yanıtlar
-        result = agent.invoke({"input": payload.question})
-        return {"answer": result.get("output")}
+        # Doğrudan ajanı değil, yönlendirici fonksiyonumuzu çağırıyoruz
+        answer = router_executor(payload.question)
+        return {"answer": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
